@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const Booking = require("../model/booking"); // Adjust the path as needed
-const sendEmail = require("../utils/email")
+const {sendEmail} = require("../utils/email"); // correct import
+
 
 
 router.post("/booking", express.json(), async (req, res) => {
@@ -45,7 +46,7 @@ router.post("/booking", express.json(), async (req, res) => {
 
     await newBooking.save();
      
-    sendEmail(userEmail,body={
+   await sendEmail(userEmail,{
       userName,
       userContact,
       bookingDate,
