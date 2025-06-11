@@ -45,11 +45,21 @@ router.post("/booking", express.json(), async (req, res) => {
     });
 
     await newBooking.save();
+
+
+    const date = new Date(bookingDate);
+
+    // Extract and format
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+    const year = date.getFullYear();
+
+    const formattedDate = `${day}-${month}-${year}`;
      
    await sendEmail(userEmail,{
       userName,
       userContact,
-      bookingDate,
+      formattedDate,
       startTime,
       endTime
     })
