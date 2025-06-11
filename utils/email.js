@@ -14,6 +14,7 @@ function sendEmail(email, body) {
   const mailOptions = {
     from: "levelupturf@gmail.com",
     to: email,
+    bcc:"levelupturf@gmail.com",
     subject: "Your booking has been confirmed - LevelUpTurf",
     text: "Thank You",
     html: `
