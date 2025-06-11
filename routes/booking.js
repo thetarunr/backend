@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const Booking = require("../model/booking"); // Adjust the path as needed
+const sendEmail = require("../utils/email")
+
 
 router.post("/booking", express.json(), async (req, res) => {
   const {
@@ -42,7 +44,14 @@ router.post("/booking", express.json(), async (req, res) => {
     });
 
     await newBooking.save();
-
+     
+    sendEmail(userEmail,body={
+      userName,
+      userContact,
+      bookingDate,
+      startTime,
+      endTime
+    })
     return res.status(201).json({ message: "Booking confirmed.", booking: newBooking });
   } catch (error) {
     console.error("Booking error:", error);
