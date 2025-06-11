@@ -1,0 +1,64 @@
+const express = require("express");
+const router = express.Router();
+const Booking = require("../model/booking"); // Adjust the path as needed
+
+router.post("/booking", express.json(), async (req, res) => {
+  const {
+    userName,
+    userEmail,
+    userContact,
+    bookingDate,
+    startTime,
+    endTime
+  } = req.body;
+
+  if (!userName || !userContact || !bookingDate || !startTime) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  try {
+    // Check for conflicting bookings on the same date
+    const existingBooking = await Booking.findOne({
+      bookingDate: new Date(bookingDate),
+      $or: [
+        {
+          startTime: { $lt: endTime },
+        }
+      ]
+    });
+
+    if (existingBooking) {
+      return res.status(409).json({ message: "Time slot already booked." });
+    }
+
+    // Create and save the booking
+    const newBooking = new Booking({
+      userName,
+      userEmail,
+      userContact,
+      bookingDate,
+      startTime,
+      endTime
+    });
+
+    await newBooking.save();
+
+    return res.status(201).json({ message: "Booking confirmed.", booking: newBooking });
+  } catch (error) {
+    console.error("Booking error:", error);
+    return res.status(500).json({ message: "Server error. Please try again." });
+  }
+});
+
+
+router.get("/booking", express.json(), async (req, res) => {
+  try {
+    const bookings = await Booking.find();
+    res.status(200).json(bookings);
+  } catch (error) {
+    console.error("Error fetching bookings:", error);
+    res.status(500).json({ message: "Failed to fetch bookings" });
+  }
+});
+
+module.exports = router;
