@@ -1,31 +1,31 @@
 const express = require("express");
 const router = express.Router();
-const Booking = require("../model/booking"); // Adjust the path as needed
-const { sendEmail } = require("../utils/email"); // correct import
+const Booking = require("../model/booking"); // Adjust path as needed
+const { sendEmail } = require("../utils/email"); // Adjust path if needed
+const { DateTime } = require("luxon"); // ✅ Import luxon
 
-
-
+// POST /booking
 router.post("/booking", express.json(), async (req, res) => {
   const {
     userName,
     userEmail,
     userContact,
     bookingDate, // e.g., "2025-06-27"
-    startTime,
-    endTime
+    startTime,   // e.g., "18:00"
+    endTime      // e.g., "19:00"
   } = req.body;
 
-  if (!userName || !userContact || !bookingDate || !startTime) {
+  if (!userName || !userContact || !bookingDate || !startTime || !endTime) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
   try {
-    // Construct local date (force IST)
-    const dateObj = new Date(`${bookingDate}T00:00:00+05:30`);
+    // ✅ Convert bookingDate to Date in IST (India Time)
+    const dateObj = DateTime.fromISO(bookingDate, { zone: 'Asia/Kolkata' }).startOf('day');
 
-    // Check for conflicting bookings
+    // Check for conflicting bookings in DB
     const existingBooking = await Booking.findOne({
-      bookingDate: dateObj,
+      bookingDate: dateObj.toJSDate(),
       startTime: { $lt: endTime },
       endTime: { $gt: startTime },
     });
@@ -34,21 +34,22 @@ router.post("/booking", express.json(), async (req, res) => {
       return res.status(409).json({ message: "Time slot already booked." });
     }
 
-    // Format for email
-    const formattedDate = `${dateObj.getDate().toString().padStart(2, '0')}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getFullYear()}`;
+    // ✅ Format date for display (DD-MM-YYYY)
+    const formattedDate = dateObj.toFormat('dd-MM-yyyy');
 
-    // Save
+    // Save booking to DB
     const newBooking = new Booking({
       userName,
       userEmail,
       userContact,
-      bookingDate: dateObj,
+      bookingDate: dateObj.toJSDate(),
       startTime,
       endTime
     });
 
     await newBooking.save();
 
+    // Send confirmation email
     await sendEmail(userEmail, {
       userName,
       userContact,
@@ -64,7 +65,7 @@ router.post("/booking", express.json(), async (req, res) => {
   }
 });
 
-
+// GET /booking
 router.get("/booking", express.json(), async (req, res) => {
   try {
     const bookings = await Booking.find();
@@ -72,11 +73,14 @@ router.get("/booking", express.json(), async (req, res) => {
     const filtered = bookings.map(b => ({
       _id: b._id,
       bookingDate: b.bookingDate,
-      startTime: b.startTime
+      startTime: b.startTime,
+      endTime: b.endTime,
+      userName: b.userName,
+      userEmail: b.userEmail,
+      userContact: b.userContact
     }));
 
     res.status(200).json(filtered);
-
   } catch (error) {
     console.error("Error fetching bookings:", error);
     res.status(500).json({ message: "Failed to fetch bookings" });
