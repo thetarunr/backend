@@ -15,11 +15,12 @@ const jwt = require("jsonwebtoken")
 
 //CORS
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*'); 
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   next();
 });
+
 
 
 // JWT
@@ -58,15 +59,22 @@ app.use(bodyParser.json());
 app.use(express.json());
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
-app.use(morgan("common"));
+app.use(morgan("dev"))
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
 app.use(xss());
+
 env.config();
 
+app.use((req,res,next) => {
+  console.log(req.body)
+  next();
+})
+
 // routes
-app.use("/",verifyToken, require("./routes/booking"))
+app.use("/", verifyToken, require("./routes/booking"))
+
 app.get("/test", (req, res) => {
   res.send("hello");
 });

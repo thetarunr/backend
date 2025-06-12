@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Booking = require("../model/booking"); // Adjust the path as needed
-const {sendEmail} = require("../utils/email"); // correct import
+const { sendEmail } = require("../utils/email"); // correct import
 
 
 
@@ -23,17 +23,25 @@ router.post("/booking", express.json(), async (req, res) => {
     // Check for conflicting bookings on the same date
     const existingBooking = await Booking.findOne({
       bookingDate: new Date(bookingDate),
-      $or: [
-        {
-          startTime: { $lt: endTime },
-        }
-      ]
+      startTime: { $lt: endTime },
+      endTime: { $gt: startTime },
     });
 
+
+   
     if (existingBooking) {
       return res.status(409).json({ message: "Time slot already booked." });
     }
 
+     // Extract and format
+     const date = new Date(bookingDate);
+     const day = date.getDate().toString().padStart(2, '0');
+     const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+     const year = date.getFullYear();
+ 
+     const formattedDate = `${day}-${month}-${year}`;
+
+     
     // Create and save the booking
     const newBooking = new Booking({
       userName,
@@ -41,22 +49,11 @@ router.post("/booking", express.json(), async (req, res) => {
       userContact,
       bookingDate,
       startTime,
-      endTime
     });
 
     await newBooking.save();
 
-
-    // Extract and format
-    const date = new Date(bookingDate);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
-    const year = date.getFullYear();
-
-    const formattedDate = `${day}-${month}-${year}`;
-
-
-  await sendEmail(userEmail,{
+    await sendEmail(userEmail, {
       userName,
       userContact,
       bookingDate:formattedDate,
