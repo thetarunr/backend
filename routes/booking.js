@@ -75,9 +75,6 @@ router.get("/booking", express.json(), async (req, res) => {
       bookingDate: b.bookingDate,
       startTime: b.startTime,
       endTime: b.endTime,
-      userName: b.userName,
-      userEmail: b.userEmail,
-      userContact: b.userContact
     }));
 
     res.status(200).json(filtered);
