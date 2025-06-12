@@ -46,7 +46,7 @@ router.post("/booking", express.json(), async (req, res) => {
 
     await newBooking.save();
 
-    
+
     // Extract and format
     const date = new Date(bookingDate);
     const day = date.getDate().toString().padStart(2, '0');
@@ -74,7 +74,15 @@ router.post("/booking", express.json(), async (req, res) => {
 router.get("/booking", express.json(), async (req, res) => {
   try {
     const bookings = await Booking.find();
-    res.status(200).json(bookings);
+
+    const filtered = bookings.map(b => ({
+      _id: b._id,
+      bookingDate: b.bookingDate,
+      startTime: b.startTime
+    }));
+
+    res.status(200).json(filtered);
+
   } catch (error) {
     console.error("Error fetching bookings:", error);
     res.status(500).json({ message: "Failed to fetch bookings" });

@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
@@ -9,6 +11,7 @@ const helmet = require("helmet");
 const xss = require("xss-clean");
 const errorController = require("./controller/errorController");
 const logger = require("./utils/logger");
+const jwt = require("jsonwebtoken")
 
 //CORS
 app.use((req, res, next) => {
@@ -18,8 +21,37 @@ app.use((req, res, next) => {
   next();
 });
 
-//routes
-// app.use("/", require("./routes/payment"));
+
+// JWT
+const SECRET = process.env.JWT_SECRET;
+
+// Route to generate token (you can protect this or do it manually)
+app.post('/api/generate-token', (req, res) => {
+  const payload = {
+    role: 'client'
+  };
+
+  const token = jwt.sign(payload, SECRET, { expiresIn: process.env.JWT_EXPIRY });
+  res.json({ token });
+});
+
+// Middleware to verify token
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid token' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  jwt.verify(token, SECRET, (err, payload) => {
+    if (err) return res.status(403).json({ error: 'Invalid or expired token' });
+    req.user = payload;
+    next();
+  });
+};
+
 
 //config
 app.use(bodyParser.json());
@@ -34,7 +66,7 @@ app.use(xss());
 env.config();
 
 // routes
-app.use("/",require("./routes/booking"))
+app.use("/",verifyToken, require("./routes/booking"))
 app.get("/test", (req, res) => {
   res.send("hello");
 });
