@@ -10,7 +10,7 @@ router.post("/booking", express.json(), async (req, res) => {
     userName,
     userEmail,
     userContact,
-    bookingDate,
+    bookingDate, // e.g., "2025-06-27"
     startTime,
     endTime
   } = req.body;
@@ -20,35 +20,31 @@ router.post("/booking", express.json(), async (req, res) => {
   }
 
   try {
-    // Check for conflicting bookings on the same date
+    // Construct local date (force IST)
+    const dateObj = new Date(`${bookingDate}T00:00:00+05:30`);
+
+    // Check for conflicting bookings
     const existingBooking = await Booking.findOne({
-      bookingDate: new Date(bookingDate),
+      bookingDate: dateObj,
       startTime: { $lt: endTime },
       endTime: { $gt: startTime },
     });
 
-
-   
     if (existingBooking) {
       return res.status(409).json({ message: "Time slot already booked." });
     }
 
-     // Extract and format
-     const date = new Date(bookingDate);
-     const day = date.getDate().toString().padStart(2, '0');
-     const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
-     const year = date.getFullYear();
- 
-     const formattedDate = `${day}-${month}-${year}`;
+    // Format for email
+    const formattedDate = `${dateObj.getDate().toString().padStart(2, '0')}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getFullYear()}`;
 
-     
-    // Create and save the booking
+    // Save
     const newBooking = new Booking({
       userName,
       userEmail,
       userContact,
-      bookingDate,
+      bookingDate: dateObj,
       startTime,
+      endTime
     });
 
     await newBooking.save();
@@ -56,10 +52,11 @@ router.post("/booking", express.json(), async (req, res) => {
     await sendEmail(userEmail, {
       userName,
       userContact,
-      bookingDate:formattedDate,
+      bookingDate: formattedDate,
       startTime,
       endTime
-    })
+    });
+
     return res.status(201).json({ message: "Booking confirmed.", booking: newBooking });
   } catch (error) {
     console.error("Booking error:", error);
